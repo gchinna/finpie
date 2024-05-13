@@ -8,6 +8,7 @@ dask[complete]
 beautifulsoup4
 html5lib
 lxml
+lxml_html_clean
 xlrd
 requests_html
 requests

@@ -25,14 +25,17 @@
 
 import re
 import time
+
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from requests_html import HTMLSession
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 from finpie.base import DataBase
+
 
 class Earnings(DataBase):
 
@@ -40,60 +43,89 @@ class Earnings(DataBase):
         DataBase.__init__(self)
         self.ticker = ticker
 
-    def transcripts(self, html = True):
-        '''
+    def transcripts(self, html=True):
+        """
         ....
-        '''
+        """
 
-        url = 'https://www.fool.com/'
-        driver = self._load_driver('none')
+        url = "https://www.fool.com/"
+        driver = self._load_driver("none")
 
         try:
             driver.get(url)
 
             try:
-                element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="gdpr-modal-background"]')))
-                element = driver.find_element_by_xpath('//div[@id="gdpr-modal-background"]')
+                element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//div[@id="gdpr-modal-background"]')
+                    )
+                )
+                element = driver.find_element(
+                    By.XPATH, '//div[@id="gdpr-modal-background"]'
+                )
                 self._delete_element(driver, element)
-                element = driver.find_element_by_xpath('//div[@id="gdpr-modal-content"]')
+                element = driver.find_element(
+                    By.XPATH, '//div[@id="gdpr-modal-content"]'
+                )
                 self._delete_element(driver, element)
             except:
                 pass
+            with open("fool.txt", "w") as fh:
+                fh.write(driver.page_source)
 
-            element = driver.find_element_by_xpath('//input[@class="ticker-input-input"]')
+            element = driver.find_element(
+                By.XPATH, '//input[@class="ticker-input-input"]'
+            )
             element.clear()
             element.send_keys(self.ticker)
             time.sleep(0.2)
-            element.send_keys(' ')
+            element.send_keys(" ")
             time.sleep(1)
             element.send_keys(Keys.RETURN)
 
             try:
-                element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="gdpr-modal-background"]')))
-                element = driver.find_element_by_xpath('//div[@id="gdpr-modal-background"]')
+                element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//div[@id="gdpr-modal-background"]')
+                    )
+                )
+                element = driver.find_element(
+                    By.XPATH, '//div[@id="gdpr-modal-background"]'
+                )
                 self._delete_element(driver, element)
-                element = driver.find_element_by_xpath('//div[@id="gdpr-modal-content"]')
+                element = driver.find_element(
+                    By.XPATH, '//div[@id="gdpr-modal-content"]'
+                )
                 self._delete_element(driver, element)
             except:
                 pass
 
-            element = driver.find_element_by_xpath('//a[@id="earnings"]')
+            element = driver.find_element(By.XPATH, '//a[@id="earnings"]')
             self._scroll_to_element(driver, element)
             element.click()
 
             bool = True
             while bool:
                 try:
-                    element = driver.find_element_by_xpath('//div[@id="quote_page_earnings_listing"]//button[@id="load-more"]')
+                    element = driver.find_element(
+                        By.XPATH,
+                        '//div[@id="quote_page_earnings_listing"]//button[@id="load-more"]',
+                    )
                     self._scroll_to_element(driver, element)
                     element.click()
                 except:
                     bool = False
 
-            links = [ l.get_attribute('href') for l in driver.find_elements_by_xpath('//div[@id="quote_page_earnings_listing"]//a[@data-id="article-list-hl"]') ]
+            links = [
+                l.get_attribute("href")
+                for l in driver.find_elements(
+                    By.XPATH,
+                    '//div[@id="quote_page_earnings_listing"]//a[@data-id="article-list-hl"]',
+                )
+            ]
             driver.quit()
         except BaseException as e:
-            print('Failed..')
+            print("Failed..")
             print(str(e))
             driver.quit()
             return None
@@ -102,67 +134,106 @@ class Earnings(DataBase):
         df = []
         for link in links:
             r = session.get(link)
-            soup = bs(r.content, 'html5lib')
+            soup = bs(r.content, "html5lib")
 
-            #date = soup.find('span', class_ = 'article-content').find('span', id = 'date').text
-            text = soup.find('span', class_ = 'article-content').find_all(['h2', 'p'])[3:]
+            # date = soup.find('span', class_ = 'article-content').find('span', id = 'date').text
+            text = soup.find("span", class_="article-content").find_all(["h2", "p"])[3:]
 
-            headings = [ i for i, h in enumerate(text) if '<h2>' in str(h) ]
+            headings = [i for i, h in enumerate(text) if "<h2>" in str(h)]
 
             temp = []
 
-            for i in range(1,len(headings)):
-                temp.append( ' \n '.join([ t.text for t in text[headings[i-1]:headings[i]] ]) )
-            temp.append( ' \n '.join([ t.text for t in text[headings[-1]:]] ) )
+            for i in range(1, len(headings)):
+                temp.append(
+                    " \n ".join([t.text for t in text[headings[i - 1] : headings[i]]])
+                )
+            temp.append(" \n ".join([t.text for t in text[headings[-1] :]]))
 
-            temp = { t.split(':')[0].lower().replace(' ', '_').replace('&', 'and'): ' \n '.join(t.split(' \n ')[1:]) for t in temp if t.split(':')[0].lower() != 'contents'}
-            temp['ticker'] = self.ticker
+            temp = {
+                t.split(":")[0]
+                .lower()
+                .replace(" ", "_")
+                .replace("&", "and"): " \n ".join(t.split(" \n ")[1:])
+                for t in temp
+                if t.split(":")[0].lower() != "contents"
+            }
+            temp["ticker"] = self.ticker
             if html:
-                temp['html'] = ' '.join([ str(t) for t in text ])
+                temp["html"] = " ".join([str(t) for t in text])
 
-            pattern = re.compile('([12]\d{3}/(0[0-9]|1[0-9])/(0[0-9]|[12]\d|3[01]))')
-            date = pattern.search( link )[0]
-            temp['date'] = date
+            pattern = re.compile("([12]\d{3}/(0[0-9]|1[0-9])/(0[0-9]|[12]\d|3[01]))")
+            date = pattern.search(link)[0]
+            temp["date"] = date
 
-            text =  soup.find('span', class_ = 'article-content').find_all('p')[1].text
-            if text == 'Image source: The Motley Fool.':
-                text =  soup.find('span', class_ = 'article-content').find_all('p')[2].find('em').text
-                temp['time'] = text
+            text = soup.find("span", class_="article-content").find_all("p")[1].text
+            if text == "Image source: The Motley Fool.":
+                text = (
+                    soup.find("span", class_="article-content")
+                    .find_all("p")[2]
+                    .find("em")
+                    .text
+                )
+                temp["time"] = text
             else:
                 try:
-                    text =  soup.find('span', class_ = 'article-content').find_all('p')[1].find('em').text
-                    temp['time'] = text
+                    text = (
+                        soup.find("span", class_="article-content")
+                        .find_all("p")[1]
+                        .find("em")
+                        .text
+                    )
+                    temp["time"] = text
                 except:
-                    temp['time'] = soup.find('span', class_ = 'article-content').find_all('p')[1].text.split(',')[-1].strip()
-            #soup.find('span', class_ = 'article-content').find('em', id = 'time').text
+                    temp["time"] = (
+                        soup.find("span", class_="article-content")
+                        .find_all("p")[1]
+                        .text.split(",")[-1]
+                        .strip()
+                    )
+            # soup.find('span', class_ = 'article-content').find('em', id = 'time').text
 
-            text = soup.find('span', class_ = 'article-content').find_all(['h2', 'p'])[1].text
-            if text == 'Image source: The Motley Fool.':
-                text = soup.find('span', class_ = 'article-content').find_all(['h2', 'p'])[2].text
+            text = (
+                soup.find("span", class_="article-content")
+                .find_all(["h2", "p"])[1]
+                .text
+            )
+            if text == "Image source: The Motley Fool.":
+                text = (
+                    soup.find("span", class_="article-content")
+                    .find_all(["h2", "p"])[2]
+                    .text
+                )
             try:
-                pattern = re.compile('(Q\d\ \d{4})')
-                temp['quarter'] = pattern.search(text)[0]
+                pattern = re.compile("(Q\d\ \d{4})")
+                temp["quarter"] = pattern.search(text)[0]
             except:
-                pattern = re.compile('(Q\d\\xa0\d{4})')
-                temp['quarter'] = pattern.search(text)[0].replace(u'\xa0', u' ')
-            temp['link'] = link  # need to add this to access in browser?
+                pattern = re.compile("(Q\d\\xa0\d{4})")
+                temp["quarter"] = pattern.search(text)[0].replace("\xa0", " ")
+            temp["link"] = link  # need to add this to access in browser?
 
-            df.append( pd.DataFrame( temp, index = [date] ) )
+            df.append(pd.DataFrame(temp, index=[date]))
 
         df = pd.concat(df)
         df.index = pd.to_datetime(df.index)
-        df.index.name = 'date'
+        df.index.name = "date"
 
         return df
 
     def _delete_element(self, driver, element):
-        driver.execute_script("""
+        driver.execute_script(
+            """
         var element = arguments[0];
         element.parentNode.removeChild(element);
-        """, element)
+        """,
+            element,
+        )
 
     def _scroll_to_element(self, driver, element):
-        driver.execute_script("arguments[0].scrollIntoView({behavior: 'auto', block: 'center', inline: 'center'});", element)
+        driver.execute_script(
+            "arguments[0].scrollIntoView({behavior: 'auto', block: 'center', inline: 'center'});",
+            element,
+        )
 
-e = Earnings('NFLX')
+
+e = Earnings("NFLX")
 e.transcripts()

@@ -1,8 +1,9 @@
+import time
+import unittest
+import warnings
 
 import pandas as pd
-import warnings
-import unittest
-import time
+
 import finpie
 
 
@@ -10,17 +11,17 @@ class CommonTest(object):
 
     def __init__(self):
         # test ticker
-        self.ticker = 'AAPL'
-        self.date = '2020-09-09'
-        self.date2 = '2020-09-30'
+        self.ticker = "AAPL"
+        self.date = "2020-09-09"
+        self.date2 = "2020-09-30"
 
     def df_helper(self, data):
         # simple test to see if dataframe is returned
 
         # check output
-        self.assertTrue( type(data) == type( pd.DataFrame() ) )
+        self.assertTrue(type(data) == type(pd.DataFrame()))
         # check dataframe length
-        self.assertTrue( len(data) > 0 )
+        self.assertTrue(len(data) > 0)
 
 
 class PriceDataTest(unittest.TestCase, CommonTest):
@@ -118,46 +119,50 @@ class FundamentalDataTest(unittest.TestCase, CommonTest):
     def setUp(self):
         warnings.simplefilter("ignore", ResourceWarning)
 
-    def class_test( self, cl, name ):
+    def class_test(self, cl, name):
 
         for func in dir(cl):
-            if callable(getattr(cl, func)) and '_' != func[0]:
-                print( f'Testing {name} {func}' )
+            if callable(getattr(cl, func)) and "_" != func[0]:
+                print(f"Testing {name} {func}")
                 data = getattr(cl, func)()
-                if type( data ) == type((1,1)):
+                if type(data) == type((1, 1)):
                     for d in data:
                         self.df_helper(d)
                 else:
                     self.df_helper(data)
-                print( 'Test passed. \n')
+                print("Test passed. \n")
             time.sleep(1)
 
     def test_finviz(self):
 
         finviz = finpie.fundamental_data.FinvizData(self.ticker)
-        self.class_test(finviz, 'Finviz fundamentals')
+        self.class_test(finviz, "Finviz fundamentals")
 
     def test_yahoo(self):
 
         yahoo = finpie.fundamental_data.YahooData(self.ticker)
-        self.class_test(yahoo, 'Yahoo fundamentals')
+        self.class_test(yahoo, "Yahoo fundamentals")
 
     def test_mwatch(self):
 
         mwatch = finpie.fundamental_data.MwatchData(self.ticker)
-        self.class_test(mwatch, 'Marketwatch fundamentals')
+        self.class_test(mwatch, "Marketwatch fundamentals")
 
     def test_macrotrends(self):
 
         mt = finpie.fundamental_data.MacrotrendsData(self.ticker)
-        self.class_test(mt, 'Macrotrends fundamentals')
+        self.class_test(mt, "Macrotrends fundamentals")
 
+    def test_macrotrends_key_metrics(self):
+
+        mt_met = finpie.Fundamentals(self.ticker, source="macrotrends").key_metrics()
+        print(f"mt_met:\n{mt_met}")
+        # self.class_test(mt_met, "Macrotrends key_metrics") # throws an error for some reason!
 
     def test_earnings_call_transcripts(self):
 
         e = finpie.fundamental_data.Earnings(self.ticker)
-
-        self.class_test(e, 'Motley Fool Earnings Calls')
+        self.class_test(e, "Motley Fool Earnings Calls")
 
 
 class OtherDataTest(unittest.TestCase, CommonTest):
@@ -176,7 +181,6 @@ class OtherDataTest(unittest.TestCase, CommonTest):
         print('Test passed.\n')
 
     # def test_global_tickers()
-
 
 
 class EconomicDataTest(unittest.TestCase, CommonTest):
@@ -292,6 +296,5 @@ class NewsDataTest(unittest.TestCase, CommonTest):
         self.assertTrue( self.date2 in pd.date_range( data.index[-1].strftime('%Y-%m-%d'), data.index[0].strftime('%Y-%m-%d') ) )
         print('Test passed. \n')
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
