@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 from finpie.base import DataBase
+from io import StringIO
 
 class FinvizData(DataBase):
 
@@ -73,7 +74,8 @@ class FinvizData(DataBase):
         '''
         url = f'https://finviz.com/quote.ashx?t={self.ticker}'
         soup = self._get_session(url)
-        df = pd.read_html( str( soup.find('table', class_ = 'snapshot-table2') ) )[0]
+        table_str = str( soup.find('table', class_ = 'snapshot-table2')
+        df = pd.read_html( StringIO(table_str)  ) )[0]
         columns = list( range(0,len(df.columns), 2) )
         values = list( range(1,len(df.columns), 2) )
         columns = np.array( [ df[i].values for i in columns ] ).flatten().tolist()
