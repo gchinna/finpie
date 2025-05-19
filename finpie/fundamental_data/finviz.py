@@ -57,7 +57,8 @@ class FinvizData(DataBase):
         '''
         url = f'https://finviz.com/quote.ashx?t={self.ticker}&ty=c&ta=1&p=d'
         soup = self._get_session(url)
-        df = pd.read_html( str( soup.find('table', class_ = 'fullview-ratings-outer') )) [0]
+        table_str = str( soup.find('table', class_ = 'fullview-ratings-outer') )
+        df = pd.read_html( StringIO(table_str) ) [0]
         df.dropna(inplace = True)
         df.columns = ['date', 'action', 'rating_institution', 'rating', 'price_target']
         df.index = pd.to_datetime(df.date)
@@ -74,8 +75,8 @@ class FinvizData(DataBase):
         '''
         url = f'https://finviz.com/quote.ashx?t={self.ticker}'
         soup = self._get_session(url)
-        table_str = str( soup.find('table', class_ = 'snapshot-table2')
-        df = pd.read_html( StringIO(table_str)  ) )[0]
+        table_str = str( soup.find('table', class_ = 'snapshot-table2') )
+        df = pd.read_html( StringIO(table_str) ) [0]
         columns = list( range(0,len(df.columns), 2) )
         values = list( range(1,len(df.columns), 2) )
         columns = np.array( [ df[i].values for i in columns ] ).flatten().tolist()
